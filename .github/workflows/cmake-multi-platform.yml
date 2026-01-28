@@ -1,0 +1,96 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Запуск при пуше тегов v1.0, v2.0.1 и т.д.
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: hydra7-linux
+            asset_name: hydra7-linux-x64
+          - os: macos-latest
+            artifact_name: hydra7-macos
+            asset_name: hydra7-macos-universal
+          - os: windows-latest
+            artifact_name: hydra7.exe
+            asset_name: hydra7-windows-x64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev nlohmann-json3-dev libasio-dev build-essential cmake
+
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install openssl asio nlohmann-json cmake
+
+      - name: Install Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install openssl:x64-windows-static asio:x64-windows nlohmann-json:x64-windows
+
+      - name: Configure CMake (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cp build/Release/hydra7.exe ./${{ matrix.asset_name }}
+          else
+            cp build/hydra7 ./${{ matrix.asset_name }}
+            chmod +x ./${{ matrix.asset_name }}
+          fi
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            hydra7-linux/hydra7-linux-x64
+            hydra7-macos/hydra7-macos-universal
+            hydra7.exe/hydra7-windows-x64.exe
+          body: "Автоматическая сборка ноды HYDRA7 для всех платформ."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
