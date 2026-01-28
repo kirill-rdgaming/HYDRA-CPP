@@ -1,0 +1,9 @@
+{
+  "name": "hydra7",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "asio",
+    "openssl",
+    "nlohmann-json"
+  ]
+}
