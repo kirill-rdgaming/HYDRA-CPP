@@ -1,25 +1,25 @@
 cmake_minimum_required(VERSION 3.15)
-project(hydra7 VERSION 1.0.0)
+project(hydra7)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Поиск OpenSSL
 find_package(OpenSSL REQUIRED)
+find_package(asio CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
-# Поиск Asio и nlohmann_json (предполагаем наличие в системе или через пакетный менеджер)
-# Если библиотек нет в системе, GitHub Actions скачает их через менеджер пакетов
 add_executable(hydra7 main.cpp)
 
-target_include_directories(hydra7 PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(hydra7 PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-
-if(THREADS_PREFER_PTHREAD_FLAG)
-    target_link_libraries(hydra7 PRIVATE Threads::Threads)
-endif()
+target_link_libraries(hydra7 PRIVATE 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    asio::asio
+    nlohmann_json::nlohmann_json
+)
 
 if(WIN32)
     target_link_libraries(hydra7 PRIVATE ws2_32 crypt32)
-    # Статическая линковка Runtime для Windows (чтобы не требовал MSVCP140.dll)
-    set_target_properties(hydra7 PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+    target_link_libraries(hydra7 PRIVATE pthread dl)
 endif()
