@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*' # Запуск при пуше тегов v1.0, v2.0.1 и т.д.
-workflow_dispatch:
+  workflow_dispatch:
 permissions:
   contents: write
 
