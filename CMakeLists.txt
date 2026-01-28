@@ -9,7 +9,6 @@ find_package(OpenSSL REQUIRED)
 
 # Поиск Asio и nlohmann_json (предполагаем наличие в системе или через пакетный менеджер)
 # Если библиотек нет в системе, GitHub Actions скачает их через менеджер пакетов
-
 add_executable(hydra7 main.cpp)
 
 target_include_directories(hydra7 PRIVATE ${OPENSSL_INCLUDE_DIR})
